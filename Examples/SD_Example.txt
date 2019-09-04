@@ -1,0 +1,58 @@
+//  /* Mount SD Card */
+//  if(f_mount(&fs, "", 0) != FR_OK)
+//    _Error_Handler(__FILE__, __LINE__);
+//  
+//  /* Open file to write */
+//  if(f_open(&fil, "first.txt", FA_OPEN_ALWAYS | FA_READ | FA_WRITE) != FR_OK)
+//    _Error_Handler(__FILE__, __LINE__);
+//  
+//  /* Check free space */
+//  if(f_getfree("", &fre_clust, &pfs) != FR_OK)
+//    _Error_Handler(__FILE__, __LINE__);
+//  
+//  total = (uint32_t)((pfs->n_fatent - 2) * pfs->csize * 0.5);
+//  freee = (uint32_t)(fre_clust * pfs->csize * 0.5);
+//	
+//	sprintf(str1,"Total space: %d\r\nFree space: %d\r\n", total, freee);
+//	HAL_UART_Transmit(&huart1,(uint8_t*)str1,strlen(str1),0x1000);
+//    
+//  /* Free space is less than 1kb */
+//  if(freee < 1)
+//    _Error_Handler(__FILE__, __LINE__);  
+//  
+//  /* Writing text */
+//	
+//	//=============== перемещение в конец файла =====================
+//	//f_lseek(&fil, f_size(&fil));
+//	//=============== перемещение в конец файла =====================
+//	
+//  f_puts("STM32 SD Card I/O Example via SPI\r\n", &fil);  
+//  f_puts("Save the world!!!\r\n", &fil);
+//	
+////	for (i = 0; i<100; i++) {
+////		sprintf(str1,"%d\r\n", i);
+////		f_puts(str1, &fil);
+////	}
+//  
+//  /* Close file */
+//  if(f_close(&fil) != FR_OK)
+//    _Error_Handler(__FILE__, __LINE__);  
+//  
+//  /* Open file to read */
+//  if(f_open(&fil, "first.txt", FA_READ) != FR_OK)
+//    _Error_Handler(__FILE__, __LINE__);
+//  
+//  while(f_gets(buffer, sizeof(buffer), &fil))
+//  {
+//    //printf("%s", buffer);
+//		sprintf(str1,"%s", buffer);
+//		HAL_UART_Transmit(&huart1,(uint8_t*)str1,strlen(str1),0x1000);
+//  }
+//  
+//  /* Close file */
+//  if(f_close(&fil) != FR_OK)
+//    _Error_Handler(__FILE__, __LINE__);     
+//  
+//  /* Unmount SDCARD */
+//  if(f_mount(NULL, "", 1) != FR_OK)
+//    _Error_Handler(__FILE__, __LINE__);  
