@@ -1,14 +1,16 @@
 const fieldInit = (field, maxAlt, time) => {
   const leftOffset = 50, // ширина текста
-        bottomOffset = 50, // высота текста
-        heightScale = 10, // метров в делении
+        fieldWidth = 1200, // ширина поля
         timeScale = 50, // секунд в делении
-        pixelPerScale = 2, // количество пикселей на 1 метр
+        pixelPerScaleT = Math.round(fieldWidth / (timeScale + time)), // количество пикселей на 1 секунду
+        bottomOffset = 50, // высота текста
+        fieldHeight = 600, // высота поля
+        heightScale = 10, // метров в делении
+        pixelPerScaleH = Math.floor(fieldHeight / (heightScale + maxAlt)), // количество пикселей на 1 метр
         fontSize = 10;
-  maxAlt+= heightScale  * pixelPerScale; // чтобы нарисовать отметки -10 и 0
 
-  field.width = time * pixelPerScale + leftOffset + timeScale*pixelPerScale;
-  field.height = maxAlt * pixelPerScale + bottomOffset;
+  field.width = time * pixelPerScaleT + leftOffset + timeScale * pixelPerScaleT;
+  field.height = (maxAlt + heightScale) * pixelPerScaleH + bottomOffset + heightScale * pixelPerScaleH;
 
   const width = field.width,
         height = field.height;
@@ -20,7 +22,7 @@ const fieldInit = (field, maxAlt, time) => {
   ctx.translate( width - 1, height/2 );
   // rotate 270 degrees
   ctx.rotate( 3 * Math.PI / 2 );
-  ctx.font = "10pt Arial";
+  ctx.font = `${fontSize}pt Arial`;
   ctx.fillStyle = "#0000ff"; // blue
   ctx.textAlign = "center";
   // draw relative to translate point
@@ -29,7 +31,7 @@ const fieldInit = (field, maxAlt, time) => {
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#00F";
-  ctx.font = "10pt Arial";
+  ctx.font = `${fontSize}pt Arial`;
   ctx.fillText("Время (секунды)", width/2, height -5);
 
   ctx.beginPath();
@@ -39,36 +41,39 @@ const fieldInit = (field, maxAlt, time) => {
   ctx.fillStyle = "#ddd";
   ctx.strokeStyle = "#000";
   ctx.fillRect(leftOffset - 1, 0, width - leftOffset, height - bottomOffset);
-  ctx.strokeRect(leftOffset - 1, 1, width - leftOffset, height - bottomOffset)
+  ctx.strokeRect(leftOffset - 1, 1, width - leftOffset, height - bottomOffset);
 
+  const heightZero = (height - bottomOffset) - (heightScale*pixelPerScaleH);
 
-  for (let i = height - bottomOffset; i >= heightScale*pixelPerScale; i-= heightScale * pixelPerScale) {
+  for (let i = heightScale*pixelPerScaleH; i <= height - bottomOffset; i += heightScale * pixelPerScaleH) {
     ctx.setLineDash([2, 2]);
     ctx.strokeStyle = "#c5c5c5";
     ctx.moveTo(leftOffset, i);
     ctx.lineTo(width - 2, i);
     ctx.stroke();
+    console.log(i);
 
     ctx.fillStyle = "#00F";
-    ctx.font = "italic 10pt Arial";
-    ctx.fillText((maxAlt - heightScale)-(i/pixelPerScale), fontSize*3, fontSize/2 + i);
+    ctx.font = `italic ${fontSize}pt Arial`;
+    ctx.fillText(heightZero/pixelPerScaleH -  (i/pixelPerScaleH), fontSize*3, fontSize/2 + i);
   }
 
-  for (let i = 0; i < width-leftOffset; i += timeScale * pixelPerScale) {
+  for (let i = 0; i < width-leftOffset; i += timeScale * pixelPerScaleT) {
     ctx.moveTo(i + leftOffset, height - bottomOffset);
     ctx.lineTo(i + leftOffset, 0);
     ctx.stroke();
 
     ctx.textAlign = "center"
     ctx.fillStyle = "#00F";
-    ctx.font = "italic 10pt Arial";
-    ctx.fillText(i/pixelPerScale, i + leftOffset, height-fontSize*3);
+    ctx.font = `italic ${fontSize}pt Arial`;
+    ctx.fillText(i/pixelPerScaleT, i + leftOffset, height-fontSize*3);
   }
 
   return { // возвращаем объект с настройками
-    "heightZero": height - bottomOffset - heightScale * pixelPerScale,
+    "heightZero": heightZero,
     "leftOffset": leftOffset,
-    "pixelPerScale": pixelPerScale,
+    "pixelPerScaleH": pixelPerScaleH,
+    "pixelPerScaleT": pixelPerScaleT,
     "width": width,
     "height": height
   }
@@ -95,20 +100,20 @@ const graph = (wrap, fileList, name, log, options, color) => {
   ctx.stroke();
 
   for (var i = 1; i < log.length; i++) {
-    if (log[i].eng > 1104) {
+    if (log[i].e > 1104) {
       ctx.strokeStyle = color;
       ctx.lineWidth = 4;
       ctx.setLineDash([0, 0]);
       ctx.beginPath();
-      ctx.moveTo(opt.leftOffset + log[i-1].second * opt.pixelPerScale, opt.heightZero - (log[i-1].altitude) * opt.pixelPerScale);
+      ctx.moveTo(opt.leftOffset + log[i-1].s * opt.pixelPerScaleT, opt.heightZero - (log[i-1].a) * opt.pixelPerScaleH);
     } else {
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
       ctx.setLineDash([0, 0]);
       ctx.beginPath();
-      ctx.moveTo(opt.leftOffset + log[i-1].second * opt.pixelPerScale, opt.heightZero - (log[i-1].altitude) * opt.pixelPerScale);
+      ctx.moveTo(opt.leftOffset + log[i-1].s * opt.pixelPerScaleT, opt.heightZero - (log[i-1].a) * opt.pixelPerScaleH);
     }
-    ctx.lineTo(opt.leftOffset + log[i].second * opt.pixelPerScale, opt.heightZero - (log[i].altitude) * opt.pixelPerScale);
+    ctx.lineTo(opt.leftOffset + log[i].s * opt.pixelPerScaleT, opt.heightZero - (log[i].a) * opt.pixelPerScaleH);
     ctx.stroke();
   }
 }
@@ -118,7 +123,7 @@ const log = document.querySelector('.log');
 const fileList = document.querySelector('.file__list');
 let currentColor = 0;
 
-const opt = fieldInit(canvas, 300, 600);
+const opt = fieldInit(canvas, 200, 600);
 
 const input = document.getElementById('inputFile');
 

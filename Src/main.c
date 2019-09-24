@@ -542,7 +542,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		if (Record == 1) {
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		
-			sprintf(str1,"{\"altitude\":%f,\"second\":%d,\"temp\":%f,\"eng\":%d},", altitude, TimeFlight, t, EnginePower);
+			sprintf(str1,"{\"a\":%.2f,\"s\":%d,\"t\":%.2f,\"e\":%d},", altitude, TimeFlight, t, EnginePower);
 			writeString(FileName, str1);
 		}
 		// ======================== Запись данных раз в секунду ========================
@@ -601,7 +601,7 @@ void StopRecord(char* fileName) {
 	HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
   HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_2);	
 	
-	sprintf(str1,"{\"altitude\":%f,\"second\":%d,\"temp\":%f,\"eng\":%d}]", altitude, TimeFlight, t, EnginePower);
+	sprintf(str1,"{\"a\":%.2f,\"s\":%d,\"t\":%.2f,\"e\":%d}]", altitude, TimeFlight, t, EnginePower);
 	writeString(fileName, str1);
 	
 	/* Close file */
