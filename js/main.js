@@ -1,4 +1,4 @@
-const fieldInit = (field, maxAlt, time) => {
+const fieldInit = (field, fieldOpt, maxAlt, minAlt, time) => {
   const leftOffset = 50, // ширина текста
         fieldWidth = 1200, // ширина поля
         timeScale = 50, // секунд в делении
@@ -6,14 +6,21 @@ const fieldInit = (field, maxAlt, time) => {
         bottomOffset = 50, // высота текста
         fieldHeight = 600, // высота поля
         heightScale = 10, // метров в делении
-        pixelPerScaleH = Math.floor(fieldHeight / (heightScale + maxAlt)), // количество пикселей на 1 метр
-        fontSize = 10;
+        pixelPerScaleH = Math.floor(fieldHeight / (heightScale + maxAlt)) > 0 ? Math.floor(fieldHeight / (heightScale + maxAlt)) : 1, // количество пикселей на 1 метр
+        fontSize = 10
 
-  field.width = time * pixelPerScaleT + leftOffset + timeScale * pixelPerScaleT;
-  field.height = (maxAlt + heightScale) * pixelPerScaleH + bottomOffset + heightScale * pixelPerScaleH;
+  maxAlt = (maxAlt - maxAlt%heightScale) + heightScale; // Добавления запаса выше максимальной высоты.
+  minAlt = (minAlt - minAlt%heightScale) - heightScale; // Добавления запаса ниже минимального значения.
+  time = (time - time%timeScale) + timeScale; // Добавления запаса на шкале времени.
 
-  const width = field.width,
-        height = field.height;
+  const width = time * pixelPerScaleT + leftOffset;
+  const height = maxAlt * pixelPerScaleH + bottomOffset + (-minAlt) * pixelPerScaleH;
+
+  if (field.width === width && field.height === height) return;
+
+  field.width = width;
+  field.height = height;
+
   const ctx = field.getContext("2d");
 
   // save orientation again
@@ -43,7 +50,7 @@ const fieldInit = (field, maxAlt, time) => {
   ctx.fillRect(leftOffset - 1, 0, width - leftOffset, height - bottomOffset);
   ctx.strokeRect(leftOffset - 1, 1, width - leftOffset, height - bottomOffset);
 
-  const heightZero = (height - bottomOffset) - (heightScale*pixelPerScaleH);
+  const heightZero = (height - bottomOffset) - ((-minAlt)*pixelPerScaleH);
 
   for (let i = heightScale*pixelPerScaleH; i <= height - bottomOffset; i += heightScale * pixelPerScaleH) {
     ctx.setLineDash([2, 2]);
@@ -51,7 +58,6 @@ const fieldInit = (field, maxAlt, time) => {
     ctx.moveTo(leftOffset, i);
     ctx.lineTo(width - 2, i);
     ctx.stroke();
-    console.log(i);
 
     ctx.fillStyle = "#00F";
     ctx.font = `italic ${fontSize}pt Arial`;
@@ -69,29 +75,58 @@ const fieldInit = (field, maxAlt, time) => {
     ctx.fillText(i/pixelPerScaleT, i + leftOffset, height-fontSize*3);
   }
 
-  return { // возвращаем объект с настройками
-    "heightZero": heightZero,
-    "leftOffset": leftOffset,
-    "pixelPerScaleH": pixelPerScaleH,
-    "pixelPerScaleT": pixelPerScaleT,
-    "width": width,
-    "height": height
-  }
+  fieldOpt.heightZero = heightZero;
+  fieldOpt.leftOffset = leftOffset;
+  fieldOpt.pixelPerScaleH = pixelPerScaleH;
+  fieldOpt.pixelPerScaleT = pixelPerScaleT;
+  fieldOpt.bottomOffset = bottomOffset;
+  fieldOpt.heightScale = heightScale;
+  fieldOpt.leftOffset = leftOffset;
+  fieldOpt.maxAlt = maxAlt;
+  fieldOpt.width = width;
+  fieldOpt.height = height;
+  fieldOpt.change = true;
 }
 
-const graph = (wrap, fileList, name, log, options, color) => {
-  const fileIcon = document.createElement("li");
-  fileIcon.className = "file__item";
-  fileIcon.style = `color: ${color}`;
-  fileIcon.innerText = name;
-  fileList.appendChild(fileIcon);
+const graph = (wrap, fileList, name, log, options, color, callback) => {
+  const fileIcons = document.querySelectorAll('.file__item');
+  const fields = document.querySelectorAll('.log__log');
+  let fieldIcon = {}, field = {};
+  let elementFinded = false;
+  for (let i = 0; i < fileIcons.length; i++) {
+    if (fileIcons[i].innerText === name) {
+      elementFinded = true;
+      fieldIcon = fileIcons[i];
+      for (let j = 0; j < fields.length; j++) {
+        if (fields[j].dataset.name === name) {
+          field = fields[j];
+          continue;
+        }
+      }
+      continue;
+    }
+  }
+  if (!elementFinded) {
+    fieldIcon = document.createElement("li");
+    fieldIcon.className = "file__item";
+    fieldIcon.innerText = name;
+    fieldIcon.addEventListener('click', (e) => {
+      callback(e.target);
+    });
+    fileList.appendChild(fieldIcon);
 
-  const field = document.createElement("canvas");
-  field.className = "log__log";
+    field = document.createElement("canvas");
+    field.className = "log__log";
+    field.setAttribute('data-name', name);
+    wrap.appendChild(field);
+  }
+
+  fieldIcon.style = `color: ${color}`;
   field.width = options.width;
   field.height = options.height;
-  wrap.appendChild(field);
   const ctx = field.getContext("2d");
+
+  ctx.clearRect(0, 0, field.width, field.height);
 
   ctx.strokeStyle = color;
   ctx.setLineDash([0, 0]);
@@ -118,14 +153,45 @@ const graph = (wrap, fileList, name, log, options, color) => {
   }
 }
 
+const graphRemove = (name) => {
+
+}
+
+const graphChangeActive = (active) => {
+  const fields = document.querySelectorAll('.log__log');
+  const buttons = document.querySelectorAll('.file__item');
+  for (let i = 0; i < fields.length; i++) {
+    if (fields[i].dataset.name === active.innerText) {
+      fields[i].classList.add('log__log_active');
+    } else {
+      fields[i].classList.remove('log__log_active');
+    }
+  }
+  for (let i = 0; i < buttons.length; i++) {
+    if (buttons[i].innerText === active.innerText) {
+      buttons[i].classList.add('file__item_active');
+    } else {
+      buttons[i].classList.remove('file__item_active');
+    }
+  }
+
+}
+
+
 const canvas = document.getElementById("field");
 const log = document.querySelector('.log');
-const fileList = document.querySelector('.file__list');
+const logButton = document.querySelector('.file__list');
 let currentColor = 0;
 
-const opt = fieldInit(canvas, 200, 600);
+const data = [];
+const opt = {};
+
+fieldInit(canvas, opt, 200, 0, 600);
 
 const input = document.getElementById('inputFile');
+const logButtonClick = (element) => {
+  graphChangeActive(element);
+}
 
 const colors = [
   "#6A5ACD",
@@ -140,6 +206,26 @@ const colors = [
   "#425E17"
 ]
 
+const graphRender = (logCanvas, logWrap, logButton, fieldOpt, data) => {
+  let maxAlt = 0, minAlt = 0, seconds = 0;
+  for (let i = 0; i < data.length; i++) {
+    for (let j = 0; j < data[i].data.length; j++) {
+      if (maxAlt < data[i].data[j].a) maxAlt = data[i].data[j].a;
+      if (minAlt > data[i].data[j].a) minAlt = data[i].data[j].a;
+      if (seconds < data[i].data[j].s) seconds = data[i].data[j].s;
+    }
+  }
+  fieldInit(logCanvas, fieldOpt, maxAlt, minAlt, seconds);
+  for (let i = 0; i < data.length; i++) {
+    if (!data[i].rendered || fieldOpt.change) {
+      console.log(fieldOpt.change);
+      graph(logWrap, logButton, data[i].name, data[i].data, fieldOpt, data[i].color, logButtonClick);
+      data[i].rendered = true;
+    }
+  }
+  fieldOpt.change = false;
+}
+
 input.addEventListener('change', (evt) => {
   let fileLength = evt.currentTarget.files.length;
   if (fileLength) {
@@ -148,10 +234,17 @@ input.addEventListener('change', (evt) => {
       const reader = new FileReader();
       reader.onload = function(event) {
         let contents = event.target.result;
-        graph(log, fileList, fileName, JSON.parse(contents), opt, colors[currentColor]);
-        currentColor++;
+        data.push({"name": fileName, "data":JSON.parse(contents), "color": colors[currentColor], "rendered": false});
+        if (currentColor++ > colors.length) currentColor = 0;
+        graphRender(canvas, log, logButton, opt, data);
       };
       reader.readAsText(evt.currentTarget.files[i]);
     }
   }
+})
+
+canvas.addEventListener('mousemove', (e) => {
+  const alt = opt.maxAlt - (e.layerY / opt.pixelPerScaleH - opt.heightScale + 1);
+  const time = (e.layerX - opt.leftOffset) / opt.pixelPerScaleT;
+  //console.log(time, alt);
 })
