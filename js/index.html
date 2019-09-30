@@ -8,15 +8,32 @@
   <title>Logger</title>
 </head>
 <body>
-  <h1>Hello</h1>
-  <ul class="file__list">
-  </ul>
-  <div class="log">
-    <canvas id="field" width="500" height="500" class="log__field"></canvas>
+  <label class="input__file">
+    <div class="input__img">
+      <img class="input__img-img" src="./images/line-graph.png" alt="">
+    </div>
+    <div class="input__title">
+      Выбрать файлы
+    </div>
+    <input type="file" name="file" accept=".json" id="inputFile" multiple>
+  </label>
+
+  <div class="log__wrap">
+    <div class="log__wrap-field">
+      <ul class="file__list"></ul>
+      <div class="log">
+        <canvas id="field" width="500" height="500" class="log__field"></canvas>
+        <canvas id="fieldNav" width="500" height="500" class="log__nav"></canvas>
+      </div>
+    </div>
+    <div class="log__wrap-legend">
+      <div class="log__altitude">Высота</div>
+      <div class="log__time">Время</div>
+      <div class="log__engine">Мощность двигателя</div>
+    </div>
   </div>
 
 
-  <input type="file" name="file" accept=".json" id="inputFile" multiple>
 
   <script src="main.js" charset="utf-8"></script>
 </body>

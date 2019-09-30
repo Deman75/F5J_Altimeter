@@ -16,7 +16,13 @@ const fieldInit = (field, fieldOpt, maxAlt, minAlt, time) => {
   const width = time * pixelPerScaleT + leftOffset;
   const height = maxAlt * pixelPerScaleH + bottomOffset + (-minAlt) * pixelPerScaleH;
 
+  fieldOpt.change = false;
   if (field.width === width && field.height === height) return;
+
+  const logNav = document.getElementById('fieldNav');
+
+  logNav.width = width;
+  logNav.height = height;
 
   field.width = width;
   field.height = height;
@@ -88,13 +94,13 @@ const fieldInit = (field, fieldOpt, maxAlt, minAlt, time) => {
   fieldOpt.change = true;
 }
 
-const graph = (wrap, fileList, name, log, options, color, callback) => {
+const graph = (wrap, fileList, name, log, options, color, callback, dataToRemoveOnClose) => {
   const fileIcons = document.querySelectorAll('.file__item');
   const fields = document.querySelectorAll('.log__log');
   let fieldIcon = {}, field = {};
   let elementFinded = false;
   for (let i = 0; i < fileIcons.length; i++) {
-    if (fileIcons[i].innerText === name) {
+    if (fileIcons[i].dataset.name === name) {
       elementFinded = true;
       fieldIcon = fileIcons[i];
       for (let j = 0; j < fields.length; j++) {
@@ -109,10 +115,41 @@ const graph = (wrap, fileList, name, log, options, color, callback) => {
   if (!elementFinded) {
     fieldIcon = document.createElement("li");
     fieldIcon.className = "file__item";
-    fieldIcon.innerText = name;
+    fieldIcon.setAttribute('data-name', name);
+    fieldIcon.setAttribute('data-color', color);
+    fieldIcon.innerText = name[0].toUpperCase() + name.slice(1, name.length - 5);
     fieldIcon.addEventListener('click', (e) => {
       callback(e.target);
     });
+    const fieldClose = document.createElement("div");
+    fieldClose.className = "file__item-close";
+    fieldClose.addEventListener('click', (e) => {
+      const rmName = e.target.parentElement.dataset.name;
+      const rmIcon = document.querySelectorAll(".file__item");
+      const rmLog = document.querySelectorAll(".log__log");
+      for (let i = 0; i < rmIcon.length; i++) {
+        if (rmIcon[i].dataset.name === rmName) {
+          rmIcon[i].classList.add('file__item_remove');
+          setTimeout(()=>{
+            rmIcon[i].remove();
+          },400)
+        }
+        if (rmLog[i].dataset.name === rmName) {
+          rmLog[i].style.opacity = 0;
+          setTimeout(()=>{
+            rmLog[i].remove();
+          },400)
+        }
+      }
+      if (!dataToRemoveOnClose) return;
+      for (var i = 0; i < dataToRemoveOnClose.length; i++) {
+        if (dataToRemoveOnClose[i].name === rmName) {
+          dataToRemoveOnClose.splice(i,1);
+          continue;
+        }
+      }
+    })
+    fieldIcon.appendChild(fieldClose);
     fileList.appendChild(fieldIcon);
 
     field = document.createElement("canvas");
@@ -151,48 +188,63 @@ const graph = (wrap, fileList, name, log, options, color, callback) => {
     ctx.lineTo(opt.leftOffset + log[i].s * opt.pixelPerScaleT, opt.heightZero - (log[i].a) * opt.pixelPerScaleH);
     ctx.stroke();
   }
+  if (fileIcons.length > 0) callback(fileIcons[0]);
 }
 
-const graphRemove = (name) => {
-
-}
-
-const graphChangeActive = (active) => {
+const graphChangeActive = (active, data) => {
   const fields = document.querySelectorAll('.log__log');
   const buttons = document.querySelectorAll('.file__item');
-  for (let i = 0; i < fields.length; i++) {
-    if (fields[i].dataset.name === active.innerText) {
+  let activeItem;
+  for (let i = 0; i < buttons.length; i++) {
+    if (data[i] && data[i].name === active.dataset.name) {
+      data[i].active = true;
+      activeItem = i;
+    } else if (data[i]){
+      data[i].active = false;
+    }
+    if (buttons[i].dataset.name === active.dataset.name) {
+      buttons[i].classList.add('file__item_active');
+      buttons[i].style = `color: #fff; background-color: ${buttons[i].dataset.color};`;
+    } else {
+      buttons[i].classList.remove('file__item_active');
+      buttons[i].style = `background-color: #fff; color: ${buttons[i].dataset.color};`;
+    }
+    if (fields[i].dataset.name === active.dataset.name) {
       fields[i].classList.add('log__log_active');
     } else {
       fields[i].classList.remove('log__log_active');
     }
   }
-  for (let i = 0; i < buttons.length; i++) {
-    if (buttons[i].innerText === active.innerText) {
-      buttons[i].classList.add('file__item_active');
-    } else {
-      buttons[i].classList.remove('file__item_active');
-    }
-  }
-
+  return activeItem;
 }
 
+const navigateLog = (fieldNav, time, data, fieldOpt) => {
+  const ctx = fieldNav.getContext('2d');
+  if (!data.data[time]) return;
+  const legendAlt = document.querySelector('.log__altitude');
+  const legendEng = document.querySelector('.log__engine');
+  const legendTime = document.querySelector('.log__time');
+  legendAlt.innerText =  `Высота = ${data.data[time].a} метров`;
+  legendEng.innerText =  `Мощность двигателя = ${data.data[time].e}`;
+  legendTime.innerText = `Время = ${time} с`;
+  const fieldX = time * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
+  const fieldY = fieldOpt.heightZero - data.data[time].a * fieldOpt.pixelPerScaleH;
+  ctx.beginPath();
+  ctx.strokeStyle = '#ff0000';
+  ctx.lineWidth = 2;
+  ctx.clearRect(0, 0, fieldNav.width, fieldNav.height);
+  ctx.arc(fieldX, fieldY, 4, 0, Math.PI*2, true);
+  ctx.stroke();
+}
 
 const canvas = document.getElementById("field");
 const log = document.querySelector('.log');
 const logButton = document.querySelector('.file__list');
+const fieldNav = document.getElementById("fieldNav");
 let currentColor = 0;
 
 const data = [];
 const opt = {};
-
-fieldInit(canvas, opt, 200, 0, 600);
-
-const input = document.getElementById('inputFile');
-const logButtonClick = (element) => {
-  graphChangeActive(element);
-}
-
 const colors = [
   "#6A5ACD",
   "#009B76",
@@ -205,6 +257,15 @@ const colors = [
   "#BD33A4",
   "#425E17"
 ]
+let activeItem = null;
+const input = document.getElementById('inputFile');
+
+fieldInit(canvas, opt, 200, 0, 600);
+
+const logButtonClick = (element) => {
+  activeItem = graphChangeActive(element, data);
+}
+
 
 const graphRender = (logCanvas, logWrap, logButton, fieldOpt, data) => {
   let maxAlt = 0, minAlt = 0, seconds = 0;
@@ -218,8 +279,7 @@ const graphRender = (logCanvas, logWrap, logButton, fieldOpt, data) => {
   fieldInit(logCanvas, fieldOpt, maxAlt, minAlt, seconds);
   for (let i = 0; i < data.length; i++) {
     if (!data[i].rendered || fieldOpt.change) {
-      console.log(fieldOpt.change);
-      graph(logWrap, logButton, data[i].name, data[i].data, fieldOpt, data[i].color, logButtonClick);
+      graph(logWrap, logButton, data[i].name, data[i].data, fieldOpt, data[i].color, logButtonClick, data);
       data[i].rendered = true;
     }
   }
@@ -234,17 +294,24 @@ input.addEventListener('change', (evt) => {
       const reader = new FileReader();
       reader.onload = function(event) {
         let contents = event.target.result;
-        data.push({"name": fileName, "data":JSON.parse(contents), "color": colors[currentColor], "rendered": false});
+        data.push({"name": fileName,
+                    "data":JSON.parse(contents),
+                    "color": colors[currentColor],
+                    "rendered": false,
+                    "active": false});
         if (currentColor++ > colors.length) currentColor = 0;
         graphRender(canvas, log, logButton, opt, data);
+        evt.target.value = '';
       };
       reader.readAsText(evt.currentTarget.files[i]);
     }
   }
 })
 
-canvas.addEventListener('mousemove', (e) => {
+fieldNav.addEventListener('mousemove', (e) => {
   const alt = opt.maxAlt - (e.layerY / opt.pixelPerScaleH - opt.heightScale + 1);
-  const time = (e.layerX - opt.leftOffset) / opt.pixelPerScaleT;
-  //console.log(time, alt);
+  const time = Math.round((e.layerX - opt.leftOffset) / opt.pixelPerScaleT);
+
+  if (!data[activeItem]) return;
+  navigateLog(fieldNav, time, data[activeItem], opt);
 })
