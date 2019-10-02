@@ -181,7 +181,9 @@ const graph = (wrap, fileList, name, log, options, color, callback, dataToRemove
     ctx.lineTo(opt.leftOffset + log[i].s * opt.pixelPerScaleT, opt.heightZero - (log[i].a) * opt.pixelPerScaleH);
     ctx.stroke();
   }
-  if (fileIcons.length > 0) callback(fileIcons[0]);
+  
+  if (document.querySelectorAll('.file__item').length > 0)
+    callback(document.querySelectorAll('.file__item')[0]);
 }
 
 const graphChangeActive = (active, data) => {
