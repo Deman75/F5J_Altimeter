@@ -172,19 +172,12 @@ const graph = (wrap, fileList, name, log, options, color, callback, dataToRemove
   ctx.stroke();
 
   for (var i = 1; i < log.length; i++) {
-    if (log[i].e > 1104) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 4;
-      ctx.setLineDash([0, 0]);
-      ctx.beginPath();
-      ctx.moveTo(opt.leftOffset + log[i-1].s * opt.pixelPerScaleT, opt.heightZero - (log[i-1].a) * opt.pixelPerScaleH);
-    } else {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([0, 0]);
-      ctx.beginPath();
-      ctx.moveTo(opt.leftOffset + log[i-1].s * opt.pixelPerScaleT, opt.heightZero - (log[i-1].a) * opt.pixelPerScaleH);
-    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    if (log[i].e > 1104) ctx.lineWidth = 4;
+    ctx.setLineDash([0, 0]);
+    ctx.beginPath();
+    ctx.moveTo(opt.leftOffset + log[i-1].s * opt.pixelPerScaleT, opt.heightZero - (log[i-1].a) * opt.pixelPerScaleH);
     ctx.lineTo(opt.leftOffset + log[i].s * opt.pixelPerScaleT, opt.heightZero - (log[i].a) * opt.pixelPerScaleH);
     ctx.stroke();
   }
@@ -220,19 +213,28 @@ const graphChangeActive = (active, data) => {
 
 const navigateLog = (fieldNav, time, data, fieldOpt) => {
   const ctx = fieldNav.getContext('2d');
+  time -= 1;
   if (!data.data[time]) return;
   const legendAlt = document.querySelector('.log__altitude');
   const legendEng = document.querySelector('.log__engine');
   const legendTime = document.querySelector('.log__time');
-  legendAlt.innerText =  `Высота = ${data.data[time].a} метров`;
-  legendEng.innerText =  `Мощность двигателя = ${data.data[time].e}`;
-  legendTime.innerText = `Время = ${time} с`;
-  const fieldX = time * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
+  const legendTemp = document.querySelector('.log__temp');
+  legendAlt.innerText =  `Высота: ${data.data[time].a} м`;
+  legendEng.innerText =  `Двигателя: ${data.data[time].e}`;
+  legendTime.innerText = `Время: ${data.data[time].s} с`;
+  legendTemp.innerText = `Температура: ${data.data[time].t}\u2103`;
+  const fieldX = (time+1) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
   const fieldY = fieldOpt.heightZero - data.data[time].a * fieldOpt.pixelPerScaleH;
+  ctx.beginPath();
+  ctx.clearRect(0, 0, fieldNav.width, fieldNav.height);
+  ctx.moveTo(fieldX, 1);
+  ctx.strokeStyle = '#c0c0c0';
+  ctx.lineTo(fieldX, fieldNav.height - fieldOpt.bottomOffset);
+  ctx.stroke();
+
   ctx.beginPath();
   ctx.strokeStyle = '#ff0000';
   ctx.lineWidth = 2;
-  ctx.clearRect(0, 0, fieldNav.width, fieldNav.height);
   ctx.arc(fieldX, fieldY, 4, 0, Math.PI*2, true);
   ctx.stroke();
 }

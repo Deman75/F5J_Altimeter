@@ -151,3 +151,15 @@
 .log__wrap {
   display: flex;
 }
+
+.log__legend {
+  list-style: none;
+  margin: 0 0 0 20px;
+  box-shadow: 0 0 10px 8px rgba(0, 0, 0, .1);
+  padding: 10px;
+}
+
+.log__item {
+  margin-bottom: 5px;
+  border-bottom: 1px solid rgba(0, 0, 0, .1);
+}
