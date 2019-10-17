@@ -181,7 +181,7 @@ const graph = (wrap, fileList, name, log, options, color, callback, dataToRemove
     ctx.lineTo(opt.leftOffset + log[i].s * opt.pixelPerScaleT, opt.heightZero - (log[i].a) * opt.pixelPerScaleH);
     ctx.stroke();
   }
-  
+
   if (document.querySelectorAll('.file__item').length > 0)
     callback(document.querySelectorAll('.file__item')[0]);
 }
@@ -225,7 +225,7 @@ const navigateLog = (fieldNav, time, data, fieldOpt) => {
   legendEng.innerText =  `Двигателя: ${data.data[time].e}`;
   legendTime.innerText = `Время: ${data.data[time].s} с`;
   legendTemp.innerText = `Температура: ${data.data[time].t}\u2103`;
-  const fieldX = (time+1) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
+  const fieldX = (time) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
   const fieldY = fieldOpt.heightZero - data.data[time].a * fieldOpt.pixelPerScaleH;
   ctx.beginPath();
   ctx.clearRect(0, 0, fieldNav.width, fieldNav.height);

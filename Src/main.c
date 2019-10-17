@@ -167,7 +167,12 @@ int main(void)
 	HAL_Delay(10);
 	gndAltitude = GroundAltitude(); // нулева€ высота.
 	
-	//StartRecord(FileName);
+//	if (Internal_Flash_Read(FLASH_FIRSTSTART) != 5) {
+//		Internal_Flash_Write(5, FLASH_FIRSTSTART);
+//		Internal_Flash_Write(0, FLASH_FNUMB);
+//	}
+//	
+	//StartRecord("test.txt");
 	
   /* USER CODE END 2 */
 
@@ -196,16 +201,16 @@ int main(void)
 		// ======================== ѕоказать записанное ========================
 		
 		if (HAL_GPIO_ReadPin(BTN_IN_GPIO_Port, BTN_IN_Pin) == GPIO_PIN_RESET) {
+			HAL_Delay(500);
+			
 			if (Record == 0) {
 				//================== file name =================
 				Internal_Flash_Write(Internal_Flash_Read(FLASH_FNUMB)+1, FLASH_FNUMB); // чтение пор€дкого номера дл€ имени лога
 				sprintf(FileName,"flight%d.json", Internal_Flash_Read(FLASH_FNUMB));
 				StartRecord(FileName);
-				
 			} else if (Record == 1) {
 				StopRecord(FileName);
 			}
-			HAL_Delay(500);
 		}
 		
 
@@ -544,10 +549,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		
 			sprintf(str1,"{\"a\":%.2f,\"s\":%d,\"t\":%.2f,\"e\":%d},", altitude, TimeFlight, t, EnginePower);
 			writeString(FileName, str1);
+			
+			TimeFlight++;
 		}
 		// ======================== «апись данных раз в секунду ========================
 		
-		TimeFlight++;
+//		TimeFlight++;
 	}
 	
 	//============================== «ахват шим ================
@@ -597,6 +604,8 @@ void StartRecord(char* fileName) {
 }
 void StopRecord(char* fileName) {
 	HAL_TIM_Base_Stop_IT(&htim1);
+	
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 	
 	HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
   HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_2);	
@@ -650,6 +659,11 @@ void _Error_Handler(char * file, int line)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+	
+	while (1) {
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		HAL_Delay(100);
+	}
 
   /* USER CODE END Error_Handler_Debug */
 }

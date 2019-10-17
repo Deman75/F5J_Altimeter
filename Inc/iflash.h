@@ -4,7 +4,7 @@
 #include "main.h"
 
 #define FLASH_FNUMB 0x0800F800 // указатель на память где хранится порядковый номер файла лога
-#define FLASH_FIRSTSTART 0x0800F802
+#define FLASH_FIRSTSTART 0x0800F804
 //#define FLASH_THR 0x0800F804
 //#define FLASH_RUD 0x0800F806
 

@@ -340,7 +340,7 @@ float GroundAltitude() {
 		HAL_Delay(BMP085_getMeasureDelayMilliseconds(BMP085_MODE_PRESSURE_3));
 		p = BMP085_getPressure();
 		
-		a = (0.01 * BMP085_getAltitude(p, 101325)) + ((1 - 0.01) * a);
+		a = (0.05 * BMP085_getAltitude(p, 101325)) + ((1 - 0.05) * a);
 	}
 	
 	
