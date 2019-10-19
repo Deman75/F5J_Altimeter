@@ -66,7 +66,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define LED_ON  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET)
+#define LED_OFF HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET)
+#define LED_TOG HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -161,8 +163,12 @@ int main(void)
   MX_FATFS_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
-	while(!BMP085_testConnection());
+	
+	LED_OFF;
+	while(!BMP085_testConnection()) {
+		LED_TOG;
+	};
+	LED_OFF;
   BMP085_initialize();
 	HAL_Delay(10);
 	gndAltitude = GroundAltitude(); // нулевая высота.
@@ -195,7 +201,7 @@ int main(void)
 		
 		altitude = (0.1 * (BMP085_getAltitude(p, 101325) - gndAltitude)) + ((1 - 0.1) * altitude);
 		
-		HAL_GPIO_TogglePin(BTN_OUT_GPIO_Port, BTN_OUT_Pin);
+//		HAL_GPIO_TogglePin(BTN_OUT_GPIO_Port, BTN_OUT_Pin);
 		
 		
 		// ======================== Показать записанное ========================
@@ -545,7 +551,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		
 				// ======================== Запись данных раз в секунду ========================
 		if (Record == 1) {
-			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+			LED_TOG;
 		
 			sprintf(str1,"{\"a\":%.2f,\"s\":%d,\"t\":%.2f,\"e\":%d},", altitude, TimeFlight, t, EnginePower);
 			writeString(FileName, str1);
@@ -605,7 +611,7 @@ void StartRecord(char* fileName) {
 void StopRecord(char* fileName) {
 	HAL_TIM_Base_Stop_IT(&htim1);
 	
-	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+	LED_OFF;
 	
 	HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
   HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_2);	
@@ -661,8 +667,8 @@ void _Error_Handler(char * file, int line)
   /* User can add his own implementation to report the HAL error return state */
 	
 	while (1) {
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		HAL_Delay(100);
+		LED_TOG;
+		HAL_Delay(300);
 	}
 
   /* USER CODE END Error_Handler_Debug */
