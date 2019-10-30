@@ -19,10 +19,13 @@ const fieldInit = (field, fieldOpt, maxAlt, minAlt, time) => {
   fieldOpt.change = false;
   if (field.width === width && field.height === height) return;
 
-  const logNav = document.getElementById('fieldNav');
+  const fieldNav = document.getElementById('fieldNav');
+  const fieldNavRange = document.getElementById('fieldNavRange');
 
-  logNav.width = width;
-  logNav.height = height;
+  fieldNav.width = width;
+  fieldNav.height = height;
+  fieldNavRange.width = width;
+  fieldNavRange.height = height;
 
   field.width = width;
   field.height = height;
@@ -216,6 +219,8 @@ const graphChangeActive = (active, data) => {
 const navigateLog = (fieldNav, time, data, fieldOpt) => {
   const ctx = fieldNav.getContext('2d');
   time -= 1;
+  const minut = Math.floor(data.data[time] ? data.data[time].s / 60 : time / 60),
+      second = (data.data[time] ? data.data[time].s: time) - (60 * (minut));
   if (!data.data[time]) return;
   const legendAlt = document.querySelector('.log__altitude');
   const legendEng = document.querySelector('.log__engine');
@@ -223,7 +228,7 @@ const navigateLog = (fieldNav, time, data, fieldOpt) => {
   const legendTemp = document.querySelector('.log__temp');
   legendAlt.innerText =  `Высота: ${data.data[time].a} м`;
   legendEng.innerText =  `Двигателя: ${data.data[time].e}`;
-  legendTime.innerText = `Время: ${data.data[time].s} с`;
+  legendTime.innerText = `Время: ${minut < 10 ? '0'+minut : minut}:${second < 10 ? '0'+second : second} с`;
   legendTemp.innerText = `Температура: ${data.data[time].t}\u2103`;
   const fieldX = (time) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
   const fieldY = fieldOpt.heightZero - data.data[time].a * fieldOpt.pixelPerScaleH;
@@ -245,6 +250,7 @@ const canvas = document.getElementById("field");
 const log = document.querySelector('.log');
 const logButton = document.querySelector('.file__list');
 const fieldNav = document.getElementById("fieldNav");
+const fieldNavRange = document.getElementById("fieldNavRange");
 let currentColor = 0;
 
 const data = [];
@@ -262,6 +268,12 @@ const colors = [
   "#425E17"
 ]
 let activeItem = null;
+const mouseButton = {
+  press: false,
+  start: 0,
+  end: 0,
+  rangeSelected: false
+};
 const input = document.getElementById('inputFile');
 
 fieldInit(canvas, opt, 200, 0, 600);
@@ -312,10 +324,42 @@ input.addEventListener('change', (evt) => {
   }
 })
 
+const navigateLogRange = (fieldNavRange, timeStart, timeEnd, data, fieldOpt) => {
+  const ctx = fieldNavRange.getContext('2d');
+  const start = (timeStart) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
+  const end = (timeEnd) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)"
+
+  ctx.clearRect(0, 0, fieldNavRange.width, fieldNavRange.height);
+  ctx.fillRect(start, 0, end - start, fieldNavRange.height - fieldOpt.bottomOffset);
+}
+
 fieldNav.addEventListener('mousemove', (e) => {
-  const alt = opt.maxAlt - (e.layerY / opt.pixelPerScaleH - opt.heightScale + 1);
   const time = Math.round((e.layerX - opt.leftOffset) / opt.pixelPerScaleT);
 
   if (!data[activeItem]) return;
   navigateLog(fieldNav, time, data[activeItem], opt);
+
+  if (mouseButton.press) {
+    mouseButton.end = time - 1;
+    navigateLogRange(fieldNavRange, mouseButton.start, mouseButton.end, data[activeItem], opt);
+  }
+  console.log(mouseButton);
+})
+fieldNav.addEventListener('mousedown', (e) => {
+  const time = Math.round((e.layerX - opt.leftOffset) / opt.pixelPerScaleT);
+  mouseButton.press = true;
+  mouseButton.start = time - 1;
+  mouseButton.end = time - 1;
+})
+fieldNav.addEventListener('mouseup', (e) => {
+  const time = Math.round((e.layerX - opt.leftOffset) / opt.pixelPerScaleT);
+  mouseButton.press = false;
+  mouseButton.end = time - 1;
+  if (mouseButton.start === mouseButton.end) {
+    mouseButton.rangeSelected = false;
+  } else {
+    mouseButton.rangeSelected = true;
+  }
 })
