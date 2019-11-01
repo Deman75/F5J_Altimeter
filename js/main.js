@@ -130,6 +130,11 @@ const graph = (wrap, fileList, name, log, options, color, callback, dataToRemove
       const rmName = e.target.parentElement.dataset.name;
       const rmIcon = document.querySelectorAll(".file__item");
       const rmLog = document.querySelectorAll(".log__log");
+      const rmLogRange = document.querySelector('.log__range');
+      if (rmLogRange) {
+        const ctxRange = rmLogRange.getContext('2d');
+        ctxRange.clearRect(0, 0, rmLogRange.width, rmLogRange.height);
+      }
       for (let i = 0; i < rmIcon.length; i++) {
         if (rmIcon[i].dataset.name === rmName) {
           rmIcon[i].classList.add('file__item_remove');
@@ -228,7 +233,7 @@ const navigateLog = (fieldNav, time, data, fieldOpt) => {
   const legendTemp = document.querySelector('.log__temp');
   legendAlt.innerText =  `Высота: ${data.data[time].a} м`;
   legendEng.innerText =  `Двигателя: ${data.data[time].e}`;
-  legendTime.innerText = `Время: ${minut < 10 ? '0'+minut : minut}:${second < 10 ? '0'+second : second} с`;
+  legendTime.innerText = `Время: ${minut < 10 ? '0'+minut : minut}:${second < 10 ? '0'+second : second}`;
   legendTemp.innerText = `Температура: ${data.data[time].t}\u2103`;
   const fieldX = (time) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
   const fieldY = fieldOpt.heightZero - data.data[time].a * fieldOpt.pixelPerScaleH;
@@ -324,14 +329,34 @@ input.addEventListener('change', (evt) => {
   }
 })
 
-const navigateLogRange = (fieldNavRange, timeStart, timeEnd, data, fieldOpt) => {
+const navigateLogRange = (fieldNavRange, timeStart, timeEnd, rangeSelected, data, fieldOpt) => {
+  const rangeTime = document.querySelector('.log__range-time');
   const ctx = fieldNavRange.getContext('2d');
   const start = (timeStart) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
   const end = (timeEnd) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.2)"
+  if (!rangeSelected) {
+    ctx.clearRect(0, 0, fieldNavRange.width, fieldNavRange.height);
+    return;
+  }
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)"
+
+  const time = Math.abs(timeStart - timeEnd);
+  const minut = Math.floor(time / 60),
+      second = ( time) - (60 * (minut));
+  rangeTime.innerText = `Выделено: ${minut < 10 ? '0'+minut: minut}:${second < 10 ? '0'+second : second}`;
 
   ctx.clearRect(0, 0, fieldNavRange.width, fieldNavRange.height);
+  if (end < start) {
+    ctx.fillRect(fieldOpt.leftOffset, 0, end - fieldOpt.leftOffset, fieldNavRange.height - fieldOpt.bottomOffset);
+    ctx.fillRect(start, 0, fieldOpt.width, fieldNavRange.height - fieldOpt.bottomOffset);
+  } else {
+    ctx.fillRect(fieldOpt.leftOffset, 0, start - fieldOpt.leftOffset, fieldNavRange.height - fieldOpt.bottomOffset);
+    ctx.fillRect(end, 0, fieldOpt.width, fieldNavRange.height - fieldOpt.bottomOffset);
+  }
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
   ctx.fillRect(start, 0, end - start, fieldNavRange.height - fieldOpt.bottomOffset);
 }
 
@@ -343,10 +368,10 @@ fieldNav.addEventListener('mousemove', (e) => {
 
   if (mouseButton.press) {
     mouseButton.end = time - 1;
-    navigateLogRange(fieldNavRange, mouseButton.start, mouseButton.end, data[activeItem], opt);
+    navigateLogRange(fieldNavRange, mouseButton.start, mouseButton.end, mouseButton.rangeSelected, data[activeItem], opt);
   }
-  console.log(mouseButton);
 })
+
 fieldNav.addEventListener('mousedown', (e) => {
   const time = Math.round((e.layerX - opt.leftOffset) / opt.pixelPerScaleT);
   mouseButton.press = true;
@@ -359,6 +384,7 @@ fieldNav.addEventListener('mouseup', (e) => {
   mouseButton.end = time - 1;
   if (mouseButton.start === mouseButton.end) {
     mouseButton.rangeSelected = false;
+    navigateLogRange(fieldNavRange, 0, 0, data[activeItem], opt);
   } else {
     mouseButton.rangeSelected = true;
   }
