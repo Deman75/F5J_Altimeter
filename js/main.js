@@ -96,19 +96,19 @@ const fieldInit = (field, fieldOpt, maxAlt, minAlt, time) => {
   fieldOpt.height = height;
   fieldOpt.change = true;
 }
-
-const graph = (wrap, fileList, name, log, options, color, callback, dataToRemoveOnClose) => {
+//log color
+const graph = (wrap, fileList, data, options, callback, dataToRemoveOnClose) => {
   const fileIcons = document.querySelectorAll('.file__item');
   const fields = document.querySelectorAll('.log__log');
   let engineMax = 0, engineOff = 0;
   let fieldIcon = {}, field = {};
   let elementFinded = false;
   for (let i = 0; i < fileIcons.length; i++) {
-    if (fileIcons[i].dataset.name === name) {
+    if (fileIcons[i].dataset.name === data.name) {
       elementFinded = true;
       fieldIcon = fileIcons[i];
       for (let j = 0; j < fields.length; j++) {
-        if (fields[j].dataset.name === name) {
+        if (fields[j].dataset.name === data.name) {
           field = fields[j];
           continue;
         }
@@ -119,9 +119,9 @@ const graph = (wrap, fileList, name, log, options, color, callback, dataToRemove
   if (!elementFinded) {
     fieldIcon = document.createElement("li");
     fieldIcon.className = "file__item";
-    fieldIcon.setAttribute('data-name', name);
-    fieldIcon.setAttribute('data-color', color);
-    fieldIcon.innerText = name[0].toUpperCase() + name.slice(1, name.length - 5);
+    fieldIcon.setAttribute('data-name', data.name);
+    fieldIcon.setAttribute('data-color', data.color);
+    fieldIcon.innerText = data.name[0].toUpperCase() + data.name.slice(1, data.name.length - 5);
     fieldIcon.addEventListener('click', (e) => {
       callback(e.target);
     });
@@ -163,33 +163,42 @@ const graph = (wrap, fileList, name, log, options, color, callback, dataToRemove
 
     field = document.createElement("canvas");
     field.className = "log__log";
-    field.setAttribute('data-name', name);
+    field.setAttribute('data-name', data.name);
     wrap.appendChild(field);
   }
 
-  fieldIcon.style = `color: ${color}`;
+  fieldIcon.style = `color: ${data.color}`;
   field.width = options.width;
   field.height = options.height;
   const ctx = field.getContext("2d");
 
   ctx.clearRect(0, 0, field.width, field.height);
 
-  ctx.strokeStyle = color;
+  ctx.strokeStyle = data.color;
   ctx.setLineDash([0, 0]);
   ctx.beginPath();
   ctx.moveTo(opt.leftOffset, opt.heightZero);
   ctx.stroke();
 
-  // TODO: Сделать определения выключенного двигателя и максимальных оборотов
+  engineMax = data.data[0].e;
+  engineOff = data.data[0].e;
+  for (let i = 0; i < data.data.length; i++) {
+    if (engineMax < data.data[i].e) engineMax = data.data[i].e;
+    if (engineOff > data.data[i].e) engineOff = data.data[i].e;
+  }
+  data.engineMax = engineMax;
+  data.engineOff = engineOff;
+  const engineOffset = ((data.engineMax - data.engineOff) / 100) * 4 + data.engineOff;
+  console.log(data);
 
-  for (let i = 1; i < log.length; i++) {
-    ctx.strokeStyle = color;
+  for (let i = 1; i < data.data.length; i++) {
+    ctx.strokeStyle = data.color;
     ctx.lineWidth = 1;
-    if (log[i].e > 1104) ctx.lineWidth = 4;
+    if (data.data[i].e > engineOffset) ctx.lineWidth = 4;
     ctx.setLineDash([0, 0]);
     ctx.beginPath();
-    ctx.moveTo(opt.leftOffset + log[i-1].s * opt.pixelPerScaleT, opt.heightZero - (log[i-1].a) * opt.pixelPerScaleH);
-    ctx.lineTo(opt.leftOffset + log[i].s * opt.pixelPerScaleT, opt.heightZero - (log[i].a) * opt.pixelPerScaleH);
+    ctx.moveTo(opt.leftOffset + data.data[i-1].s * opt.pixelPerScaleT, opt.heightZero - (data.data[i-1].a) * opt.pixelPerScaleH);
+    ctx.lineTo(opt.leftOffset + data.data[i].s * opt.pixelPerScaleT, opt.heightZero - (data.data[i].a) * opt.pixelPerScaleH);
     ctx.stroke();
   }
 
@@ -303,7 +312,7 @@ const graphRender = (logCanvas, logWrap, logButton, fieldOpt, data) => {
   fieldInit(logCanvas, fieldOpt, maxAlt, minAlt, seconds);
   for (let i = 0; i < data.length; i++) {
     if (!data[i].rendered || fieldOpt.change) {
-      graph(logWrap, logButton, data[i].name, data[i].data, fieldOpt, data[i].color, logButtonClick, data);
+      graph(logWrap, logButton, data[i], fieldOpt, logButtonClick, data);
       data[i].rendered = true;
     }
   }
@@ -356,21 +365,20 @@ const navigateLogRange = (fieldNavRange, timeStart, timeEnd, rangeSelected, data
   ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
   ctx.fillRect(start, 0, end - start, fieldNavRange.height - fieldOpt.bottomOffset);
 
-  const time = rangeEnd - rangeStart;
+  const time = rangeEnd - rangeStart; // Вывод длительности выделеного участка
   const minut = Math.floor(time / 60),
       second = ( time) - (60 * (minut));
   rangeTime.innerText = `Выделено: ${minut < 10 ? '0'+minut: minut}:${second < 10 ? '0'+second : second}`;
 
   if (!data.data[rangeStart] || !data.data[rangeEnd]) return;
 
-  let rtc = 0, engTime = 0;
+  let rtc = 0, engTime = 0; // Подсчет скороподъемности.
   rtc = (data.data[rangeEnd].a - data.data[rangeStart].a) / time;
   for (let i = rangeStart; i <= rangeEnd; i++) {
     if (data.data[i].e > 1105) engTime++;
   }
-  // console.log(data);
-  // TODO:  Вывести скороподъемность и время работы двигателя
 
+  rateOfClimb.innerText = `Скороподъемность: ${rtc.toFixed(2)} м/с`;
 }
 
 fieldNav.addEventListener('mousemove', (e) => {
