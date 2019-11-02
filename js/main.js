@@ -100,6 +100,7 @@ const fieldInit = (field, fieldOpt, maxAlt, minAlt, time) => {
 const graph = (wrap, fileList, name, log, options, color, callback, dataToRemoveOnClose) => {
   const fileIcons = document.querySelectorAll('.file__item');
   const fields = document.querySelectorAll('.log__log');
+  let engineMax = 0, engineOff = 0;
   let fieldIcon = {}, field = {};
   let elementFinded = false;
   for (let i = 0; i < fileIcons.length; i++) {
@@ -179,7 +180,9 @@ const graph = (wrap, fileList, name, log, options, color, callback, dataToRemove
   ctx.moveTo(opt.leftOffset, opt.heightZero);
   ctx.stroke();
 
-  for (var i = 1; i < log.length; i++) {
+  // TODO: Сделать определения выключенного двигателя и максимальных оборотов
+
+  for (let i = 1; i < log.length; i++) {
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     if (log[i].e > 1104) ctx.lineWidth = 4;
@@ -319,7 +322,9 @@ input.addEventListener('change', (evt) => {
                     "data":JSON.parse(contents),
                     "color": colors[currentColor],
                     "rendered": false,
-                    "active": false});
+                    "active": false,
+                    "engineOff": 0,
+                    "engineMax": 0});
         if (currentColor++ > colors.length) currentColor = 0;
         graphRender(canvas, log, logButton, opt, data);
         evt.target.value = '';
@@ -331,33 +336,41 @@ input.addEventListener('change', (evt) => {
 
 const navigateLogRange = (fieldNavRange, timeStart, timeEnd, rangeSelected, data, fieldOpt) => {
   const rangeTime = document.querySelector('.log__range-time');
+  const rateOfClimb = document.querySelector('.log__range-rtc');
   const ctx = fieldNavRange.getContext('2d');
-  const start = (timeStart) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
-  const end = (timeEnd) * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
 
   if (!rangeSelected) {
     ctx.clearRect(0, 0, fieldNavRange.width, fieldNavRange.height);
     return;
   }
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.5)"
+  const rangeStart = timeStart < timeEnd ? timeStart : timeEnd,
+  rangeEnd   = timeStart < timeEnd ? timeEnd : timeStart;
+  const start = rangeStart * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
+  const end = rangeEnd * fieldOpt.pixelPerScaleT + fieldOpt.leftOffset;
 
-  const time = Math.abs(timeStart - timeEnd);
+  ctx.clearRect(0, 0, fieldNavRange.width, fieldNavRange.height);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.6)"
+  ctx.fillRect(fieldOpt.leftOffset, 0, start - fieldOpt.leftOffset, fieldNavRange.height - fieldOpt.bottomOffset);
+  ctx.fillRect(end, 0, fieldOpt.width, fieldNavRange.height - fieldOpt.bottomOffset);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+  ctx.fillRect(start, 0, end - start, fieldNavRange.height - fieldOpt.bottomOffset);
+
+  const time = rangeEnd - rangeStart;
   const minut = Math.floor(time / 60),
       second = ( time) - (60 * (minut));
   rangeTime.innerText = `Выделено: ${minut < 10 ? '0'+minut: minut}:${second < 10 ? '0'+second : second}`;
 
-  ctx.clearRect(0, 0, fieldNavRange.width, fieldNavRange.height);
-  if (end < start) {
-    ctx.fillRect(fieldOpt.leftOffset, 0, end - fieldOpt.leftOffset, fieldNavRange.height - fieldOpt.bottomOffset);
-    ctx.fillRect(start, 0, fieldOpt.width, fieldNavRange.height - fieldOpt.bottomOffset);
-  } else {
-    ctx.fillRect(fieldOpt.leftOffset, 0, start - fieldOpt.leftOffset, fieldNavRange.height - fieldOpt.bottomOffset);
-    ctx.fillRect(end, 0, fieldOpt.width, fieldNavRange.height - fieldOpt.bottomOffset);
-  }
+  if (!data.data[rangeStart] || !data.data[rangeEnd]) return;
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-  ctx.fillRect(start, 0, end - start, fieldNavRange.height - fieldOpt.bottomOffset);
+  let rtc = 0, engTime = 0;
+  rtc = (data.data[rangeEnd].a - data.data[rangeStart].a) / time;
+  for (let i = rangeStart; i <= rangeEnd; i++) {
+    if (data.data[i].e > 1105) engTime++;
+  }
+  // console.log(data);
+  // TODO:  Вывести скороподъемность и время работы двигателя
+
 }
 
 fieldNav.addEventListener('mousemove', (e) => {
